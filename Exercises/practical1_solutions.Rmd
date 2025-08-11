@@ -1,0 +1,341 @@
+---
+title: "Practical 1: Group-sequential design and graphical testing procedures using R"
+author: "Michael Grayling (mgraylin@its.jnj.com) and Yevgen Tymofyeyev (ytymofye@its.jnj.com)"
+date: "12th Aug 2025"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Introduction
+
+The practical seeks to provide some experience with (a) group-sequential design and (b) implementing graphical testing procedures for fixed-sample designs in R.
+
+You will use either `{gsDesign}` or `{rpact}`, and either `{gMCP}`/`{gMCPLite}` or `{graphicalMCP}`.
+
+### Exercise 1: Basics of group-sequential design in R
+
+In this first exercise, we will look to reinforce several ideas about group-sequential design discussed in the slide deck.
+The goal will be to determine the sample size required by a single-stage trial, and then compare it to several possible group-sequential designs to examine what efficiency gains might be possible.
+
+Specifically, let's consider a parallel two-arm trial: suppose that a new treatment will be compared to a control in terms of a sole primary outcome assumed to be normally distributed.
+We will further assume that the trial is to be designed to attain a (one-sided) type I error rate of $\alpha = 0.025$ and be 90\% powered to detect a treatment effect (i.e., mean difference) of 0.3.
+Finally, we will assume that the standard deviation of the outcomes is known to be 1 and that an equal number of patients will be allocated to the two arms (1:1 randomization).
+
+  a. First, lets compute the sample size that would be required by a single-stage trial for the above design parameters. You can do this using \texttt{power.t.test()} in `R`. You should find that the required sample size in each of the arms is $n \approx 234$ (so the total required sample size is approximately 468 patients).
+  
+  <span style="color: blue;"> Call </span>
+  
+```{r, eval = FALSE}
+power.t.test(delta = 0.3, sd = 1, sig.level = 0.025, power = 0.9, alternative = "one.sided")
+```
+  
+  b. What will happen to the sample size required in the control arm if we increase the allocation ratio in favour of the experimental treatment arm? \textit{Note:} No requirement to use a sample size calculator here.
+  
+  <span style="color: blue;"> While the control arm allocation will be lower, the overall sample size required will go up (as when the variance is equal in both arms, 1:1 randomization minimizes the total required sample size). </span>
+
+Now we will look at how much the expected sample size could be reduced by using a group sequential design. You can use `{gsDesign}` (via `gsDesign::gsDesign()`) or `{rpact}` (via `rpact::getSampleSizeMeans()`), either on the command line, or via their Shiny interface:
+
+  - https://rinpharma.shinyapps.io/gsdesign/
+  - https://rpact.shinyapps.io/public/
+  
+  c. First, determine a two-stage group-sequential design (retaining all of the parameters above where relevant) with O'Brien-Fleming type boundaries (with equally spaced interims). What is the expected sample size under the null? What about under the alternative? Considered these expected sample sizes, as well as the maximum sample size of the group-sequential design, to the fixed-sample design, do you think the group-sequential design is a useful one?
+  
+  <span style="color: blue;"> Using `{gsDesign}`, call </span>
+
+```{r, eval = FALSE}
+gsDesign::gsDesign(
+  k         = 2,
+  test.type = 1,
+  alpha     = 0.025,
+  beta      = 0.1,
+  # For 1:1 normal outcomes, the standardized effect is half the mean difference
+  delta     = 0.3/2,
+  timing    = c(0.5, 1),
+  sfu       = "OF"
+)
+# The maximal sample size is 471. The expected sample sizes under the null and alternative are 469.7 and 397.5 respectively
+```
+
+  <span style="color: blue;"> Using `{rpact}`, call </span>
+
+```{r, eval = FALSE}
+rpact::getSampleSizeMeans(
+  design      = rpact::getDesignGroupSequential(kMax             = 2,
+                                                alpha            = 0.025,
+                                                beta             = 0.1,
+                                                informationRates = c(0.5, 1),
+                                                typeOfDesign     = "OF"),
+  alternative = 0.3
+)
+# The maximal sample size is 472.3. The expected sample sizes under the null and alternative are 471.7 and 399.1 respectively
+```
+
+  <span style="color: blue;"> In this case, the group-sequential design requires a very small increase in the maximal sample size, but could half the required sample size; this makes it arguably a very good design. </span>
+
+  d. Try changing to Pocock type boundaries. What happens to the maximal and expected sample sizes? Do you prefer this design to the O'Brien-Fleming?
+  
+  <span style="color: blue;"> If using`{gsDesign}`, change `"OF"` to `"Pocock"`. For `{rpact}`, change it to `"P"`. Pocock boundaries are more aggressive than O'Brien-Fleming, so increase the maximal sample size, but (for many effects) reduce the expected sample size. There is thus an inherent trade-off that for any trial must be weighed up to decide what is best (depending on relative maximal sample size increase vs relative expected sample size reductions). </span>
+  
+  e. Now find three-stage designs with O'Brien-Fleming and Pocock boundaries. What are the advantages and disadvantages of these three-stage designs? What do you think will happen if you considered designs with more than three stages?
+  
+  <span style="color: blue;"> Three-stage designs typically increase the maximal sample size and decrease the expected sample size, compared to corresponding two stage designs. The same is true as more stages are added, though the differences become more marginal. You can see this for three-stage designs by running some of the following, depending on use of `{gsDesign}` or `{rpact}` </span>
+
+```{r, eval = FALSE}
+gsDesign::gsDesign(
+  k         = 3,
+  test.type = 1,
+  alpha     = 0.025,
+  beta      = 0.1,
+  delta     = 0.3/2,
+  timing    = (1:3)/3,
+  sfu       = "OF"
+)
+rpact::getSampleSizeMeans(
+  design      = rpact::getDesignGroupSequential(kMax             = 3,
+                                                alpha            = 0.025,
+                                                beta             = 0.1,
+                                                informationRates = (1:3)/3,
+                                                typeOfDesign     = "OF"),
+  alternative = 0.3
+)
+```
+
+### Exercise 2: Re-designing Running example 2
+
+Choose your favourite group-sequential design software from those discussed above.
+Compute the group-sequential designs (and their operating characteristics) for OS and PFS in Running example 2
+For PFS, assume an information fraction of 73% for its interim analysis and that the target is 90\% power at $\alpha = 0.0225$.
+For OS, you can assume information fractions of 50\%, 73\%, 87\% for its interim analyses, and that the target is 80\% power for $\alpha = 0.025$.
+
+<span style="color: blue;"> If using `{gsDesign}`, call </span>
+
+```{r, eval = FALSE}
+pfs_gsSurv <- gsDesign::gsSurv(
+  k         = 2,
+  test.type = 1,
+  alpha     = 0.0225,
+  beta      = 0.1,
+  timing    = c(0.73, 1),
+  sfu       = gsDesign::sfLDOF,
+  lambdaC   = log(2)/15,
+  hr        = 0.66,
+  eta       = -log(1 - 0.05)/12,
+  gamma     = c(10, 15, 25),
+  R         = c(2, 2, 16),
+  T         = NULL,
+  minfup    = NULL
+)
+os_gsSurv  <- gsDesign::gsSurv(
+  k         = 4,
+  test.type = 1,
+  alpha     = 0.025,
+  beta      = 0.2,
+  timing    = c(0.5, 0.73, 0.87, 1),
+  sfu       = gsDesign::sfPower,
+  sfupar    = 2,
+  lambdaC   = log(2)/27,
+  hr        = 0.69,
+  eta       = -log(1 - 0.02)/12,
+  gamma     = c(10, 15, 25),
+  R         = c(2, 2, 16),
+  T         = NULL,
+  minfup    = NULL
+)
+```
+
+<span style="color: blue;"> If using `{rpact}`, call </span>
+
+```{r, eval = FALSE}
+os_rpact  <- rpact::getSampleSizeSurvival(
+    design              = rpact::getDesignGroupSequential(
+      kMax              = 4,
+      alpha             = 0.025,
+      beta              = 0.2,
+      sided             = 1,
+      informationRates  = c(0.5, 0.73, 0.87, 1),
+      typeOfDesign      = "asKD",
+      gammaA            = 2
+    ),
+    median1          = 27/0.69,
+    median2          = 27,
+    accrualTime      = c(0, 2, 4, 20),
+    accrualIntensity = c(10, 15, 25),
+    dropoutRate1     = 0.02,
+    dropoutRate2     = 0.02,
+    dropoutTime      = 12
+  )
+pfs_rpact <- rpact::getSampleSizeSurvival(
+    design              = rpact::getDesignGroupSequential(
+      kMax              = 2,
+      alpha             = 0.0225,
+      beta              = 0.1,
+      sided             = 1,
+      informationRates  = c(0.73, 1),
+      typeOfDesign      = "asOF"
+    ),
+    median1          = 15/0.66,
+    median2          = 15,
+    accrualTime      = c(0, 2, 4, 20),
+    accrualIntensity = c(10, 15, 25),
+    dropoutRate1     = 0.05,
+    dropoutRate2     = 0.05,
+    dropoutTime      = 12
+  )
+```
+
+Can you also compute the fixed-sample designs for ORR and CR when $\alpha = 0.0025$?
+This task may be easily computed with `power.prop.test()`, though `rpact::getPowerRates()` will provide more thorough output.
+
+<span style="color: blue;"> If using `power.prop.test()`, you should call something like </span>
+
+```{r, eval = FALSE}
+orr_power_prop <- power.prop.test(450/2, 0.5, 0.7, 0.0025, alternative = "one.sided")
+cr_power_prop  <- power.prop.test(450/2, 0.3, 0.5, 0.0025, alternative = "one.sided")
+```
+
+<span style="color: blue;"> If using `rpact::getPowerRates()`, you should call something like </span>
+
+```{r, eval = FALSE}
+orr_rpact <- rpact::getPowerRates(
+  design              = rpact::getDesignGroupSequential(kMax  = 1,
+                                                        alpha = 0.0025),
+  pi1                 = 0.7,
+  pi2                 = 0.5,
+  maxNumberOfSubjects = 450
+)
+cr_rpact  <- rpact::getPowerRates(
+  design              = rpact::getDesignGroupSequential(kMax  = 1,
+                                                        alpha = 0.0025),
+  pi1                 = 0.5,
+  pi2                 = 0.3,
+  maxNumberOfSubjects = 450
+)
+```
+
+### Exercise 3: Plotting a graphical testing procedure
+
+There are several options available for plotting graphical testing procedures.
+These include functions in `{gMCPLite}` (see `gMCPLite::hGraph()`), and `{graphicalMCP}` (see `graphicalMCP::plot.initial_graph()`), and the site https://mrc-bsu.shinyapps.io/20MRC_BSU_GraphApp/.
+Note you can plot graphs with `{gMCP}`, but this will likely be more challenging unless you are able to use the package GUI.
+
+Using whichever approach you prefer, can you plot the initial graphs for Running examples 1 and 2?
+
+<span style="color: blue;"> If using `gMCPLite::hGraph()`, you should call something like </span>
+
+```{r, eval = FALSE}
+running_example_1_gMCPLite <- gMCPLite::hGraph(
+  nHypotheses     = 3,
+  nameHypotheses  = c("OS", "PFS", "ORR"),
+  alphaHypotheses = c(0.019, 0.006, 0),
+  m               = rbind(c(0.000, 0.999, 0.001),
+                          c(0.999, 0.000, 0.001),
+                          c(0.000, 1.000, 0.000)),
+  # Tailor the look
+  halfWid = 0.4, halfHgt = 0.2, trhw = 0.15, trhh = 0.05, offset = 0.2,
+  size = 4, boxtextsize = 3.5, trdigits = 3, wchar = "w"
+)
+running_example_2_gMCPLite <- gMCPLite::hGraph(
+  nHypotheses     = 4,
+  nameHypotheses  = c("PFS", "ORR", "OS", "CR"),
+  alphaHypotheses = c(0.0225, 0.0025, 0, 0),
+  m               = rbind(c(0, 0, 1, 0),
+                          c(0, 0, 0, 1),
+                          c(0, 1, 0, 0),
+                          c(1, 0, 0, 0)),
+  # Tailor the look
+  halfWid = 0.4, halfHgt = 0.2, trhw = 0.15, trhh = 0.05, offset = 0.2,
+  size = 4, boxtextsize = 3.5, trdigits = 3, wchar = "w", x = c(0, 2, 0, 2),
+  y = c(2, 2, 0, 0)
+)
+```
+
+<span style="color: blue;">  If using `graphicalMCP::plot.initial_graph()`, you should call something like </span>
+
+```{r, eval = FALSE}
+running_example_1_graphicalMCP <- plot(
+  x = graphicalMCP::graph_create(
+    hypotheses  = c(0.019, 0.006, 0),
+    transitions = rbind(c(0.000, 0.999, 0.001),
+                          c(0.999, 0.000, 0.001),
+                          c(0.000, 1.000, 0.000)),
+    hyp_names   = c("OS", "PFS", "ORR")
+  )
+)
+running_example_2_graphicalMCP <- plot(
+  x = graphicalMCP::graph_create(
+    hypotheses  = c(0.0225, 0.0025, 0, 0),
+    transitions = rbind(c(0, 0, 1, 0),
+                          c(0, 0, 0, 1),
+                          c(0, 1, 0, 0),
+                          c(1, 0, 0, 0)),
+    hyp_names   = c("PFS", "ORR", "OS", "CR")
+  )
+)
+```
+
+### Exercise 4: Calculating power of a graphical testing procedure
+
+Ignore the presence of interim analyses in Running example 1 (for OS and PFS, we will treat their fixed information level as that at IA1), and assume the test statistics for OS, PFS, and ORR, are uncorrelated.
+I.e., if $Z_\text{END}$ is the test statistic for endpoint $\text{END}$, assume
+
+\begin{align*}
+    \mathbb{E}(Z_\text{OS})    &= -\log(0.7)\sqrt{\frac{255}{4}},\\
+    \mathbb{E}(Z_\text{PFS})   &= -\log(0.69)\sqrt{\frac{357}{4}},\\
+    \mathbb{E}(Z_\text{ORR})   &= \frac{(0.59 - 0.39)}{\sqrt{\frac{4}{568}0.49(1 - 0.49)}},\\
+    \boldsymbol{Z}             &= (Z_\text{OS}, Z_\text{PFS}, Z_\text{ORR})^\top,\\
+    \text{Cov}(\boldsymbol{Z}) &= \begin{pmatrix}
+                                    1 & 0 & 0 \\
+                                    0 & 1 & 0 \\
+                                    0 & 0 & 1
+                                  \end{pmatrix}.
+\end{align*}
+
+Can you use either `gMCP::calcPower()` or `graphicalMCP::graph_calculate_power()` to compute the multiplicity adjusted power for each endpoint?
+
+<span style="color: blue;">  If using `gMCP::calcPower()`, you should call something like </span>
+
+```{r, eval = FALSE}
+gMCP::calcPower(weights = c(0.019, 0.006, 0)/0.025,
+                alpha   = 0.025,
+                G       = rbind(c(0.000, 0.999, 0.001),
+                                c(0.999, 0.000, 0.001),
+                                c(0.000, 1.000, 0.000)),
+                mean    = c(-log(0.7)*sqrt(255/4),
+                            -log(0.69)*sqrt(357/4),
+                            0.2/sqrt(0.49*(1 - 0.49)*4/568)),
+                n.sim   = 1e+05)
+```
+
+<span style="color: blue;">  If using `graphicalMCP::graph_calculate_power()`, you should call something like </span>
+
+```{r, eval = FALSE}
+graphicalMCP::graph_calculate_power(
+  graph          = graphicalMCP::graph_create(
+    hypotheses  = c(0.019, 0.006, 0)/0.025,
+    transitions = rbind(c(0.000, 0.999, 0.001),
+                          c(0.999, 0.000, 0.001),
+                          c(0.000, 1.000, 0.000)),
+    hyp_names   = c("OS", "PFS", "ORR")
+  ),
+  alpha          = 0.025,
+  power_marginal = stats::pnorm(c(-log(0.7)*sqrt(255/4),
+                                  -log(0.69)*sqrt(357/4),
+                                  0.2/sqrt(0.49*(1 - 0.49)*4/568)) -
+                                  stats::qnorm(1 - 0.025))
+)
+```
+
+What would be the implications to the multiplicity adjusted powers if the initial $\alpha$ split was instead $w_\text{OS} = 0.019/2 = 0.0095$, $w_\text{PFS} = 0.006/2 = 0.003$, and $w_\text{ORR} = 0.0125$?
+
+<span style="color: blue;"> Changing the initial $\alpha$ allocations as suggested, you should find that the multiplicity adjusted power changes to ~80.2\% for OS (from ~80.8\%), to ~93.0\% for PFS (from ~91.7\%), and to ~99.6\% for ORR (from ~89.6\%). So all PFS and ORR gain power, while OS loses a tiny amount; this reflects a common opinion that it is effective in a graphical test to test well-powered endpoints such as ORR with high $\alpha$ and then recycle. </span>
+
+### Exercise 5: Optimal group-sequential design
+
+Slides 33 and 34 discuss the optimal Wang-Tsiatis design for three equally spaced analyses when $\alpha = 0.025$ and $\beta = 0.2$.
+Using the file `optimal_wt.R`, compute the optimal design for $\alpha = 0.025$ and $\beta = 0.1$, when there are four equally spaced analyses.
+How does the optimal design fare compare to Pocock's and O'Brien-Fleming approaches?
+
+<span style="color: blue;"> See optimal_wt_exercise_5.R for the solution. Again, performance from the optimal Wang-Tsiatis design is similar to Pocock, but typically a lot better than O'Brien-Fleming when the effect is strong. </span>

@@ -1,0 +1,29 @@
+---
+title: "Practical 2: Graphical testing in group-sequential designs using R"
+author: "Michael Grayling (mgraylin@its.jnj.com) and Yevgen Tymofyeyev (ytymofye@its.jnj.com)"
+date: "12th Aug 2025"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+In this practical, the goal is to gain some practical experience with the functionality in `{appendMCP}`.
+As such, you will preferably have this package installed.
+If you have been unable to install this package, you can download the core components from https://github.com/mjg211/mcp-2025_short_course, and should still be able to proceed with the practical (assuming you are able to install other required packages, e.g., `gsDesign` and `tidyverse`).
+If you are unable to implement the package functionality via this work around, you could consider jumping straight to the practical2_solutions.html file, to see how to solve Exercises 1-2.
+Alternatively, consider working further on exercises from Practical 1, or asking any questions you may have about the course content.
+
+### Exercise 1: Re-designing Running example 2
+
+  a. Open the file keynote-598.Rmd. This contains the implementation of `{appendMCP}` for constructing the interim analysis and multiple testing procedure for KEYNOTE-598, presented in the course slide deck. Browse through the input section (lines 55 to 205). Check you understand what the inputs are doing; please ask if anything is unclear.
+  b. The objective now is to convert the file keynote-598.Rmd to produce outputs relevant to Running example 2. Refer to Slides 6-13 in the deck to see how the assumptions for Running example 1: KEYNOTE-598 are placed in the .Rmd file, and what they need to be replaced with for Running example 2. Working line by line, map over the inputs as needed. If you are stuck, you can ask for clarification, or jump to the solution in running_example_2.Rmd if you prefer.
+
+### Exercise 2: Further and improved implementations
+
+Ask us about how to implement other features `{appendMCP}` supports  (e.g., 'nominal' $\alpha$-spending at early IAs) or that you'd like it to support. Several such features are shown in practical2_solutions.html.
+
+Have you got any suggestions for how to improve the package input/output?

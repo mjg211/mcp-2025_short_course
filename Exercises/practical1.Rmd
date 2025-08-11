@@ -1,0 +1,80 @@
+---
+title: "Practical 1: Group-sequential design and graphical testing procedures using R"
+author: "Michael Grayling (mgraylin@its.jnj.com) and Yevgen Tymofyeyev (ytymofye@its.jnj.com)"
+date: "12th Aug 2025"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Introduction
+
+The practical seeks to provide some experience with (a) group-sequential design and (b) implementing graphical testing procedures for fixed-sample designs in R.
+
+You will use either `{gsDesign}` or `{rpact}`, and either `{gMCP}`/`{gMCPLite}` or `{graphicalMCP}`.
+
+### Exercise 1: Basics of group-sequential design in R
+
+In this first exercise, we will look to reinforce several ideas about group-sequential design discussed in the slide deck.
+The goal will be to determine the sample size required by a single-stage trial, and then compare it to several possible group-sequential designs to examine what efficiency gains might be possible.
+
+Specifically, let's consider a parallel two-arm trial: suppose that a new treatment will be compared to a control in terms of a sole primary outcome assumed to be normally distributed.
+We will further assume that the trial is to be designed to attain a (one-sided) type I error rate of $\alpha = 0.025$ and be 90\% powered to detect a treatment effect (i.e., mean difference) of 0.3.
+Finally, we will assume that the standard deviation of the outcomes is known to be 1 and that an equal number of patients will be allocated to the two arms (1:1 randomization).
+
+  a. First, lets compute the sample size that would be required by a single-stage trial for the above design parameters. You can do this using \texttt{power.t.test()} in `R`. You should find that the required sample size in each of the arms is $n \approx 234$ (so the total required sample size is approximately 468 patients).
+  b. What will happen to the sample size required in the control arm if we increase the allocation ratio in favour of the experimental treatment arm? \textit{Note:} No requirement to use a sample size calculator here.
+
+Now we will look at how much the expected sample size could be reduced by using a group sequential design. You can use `{gsDesign}` (via `gsDesign::gsDesign()`) or `{rpact}` (via `rpact::getSampleSizeMeans()`), either on the command line, or via their Shiny interface:
+
+  - https://rinpharma.shinyapps.io/gsdesign/
+  - https://rpact.shinyapps.io/public/
+  
+  c. First, determine a two-stage group-sequential design (retaining all of the parameters above where relevant) with O'Brien-Fleming type boundaries (with equally spaced interims). What is the expected sample size under the null? What about under the alternative? Considered these expected sample sizes, as well as the maximum sample size of the group-sequential design, to the fixed-sample design, do you think the group-sequential design is a useful one?
+  d. Try changing to Pocock type boundaries. What happens to the maximal and expected sample sizes? Do you prefer this design to the O'Brien-Fleming?
+  e. Now find three-stage designs with O'Brien-Fleming and Pocock boundaries. What are the advantages and disadvantages of these three-stage designs? What do you think will happen if you considered designs with more than three stages?
+
+### Exercise 2: Re-designing Running example 2
+
+Choose your favourite group-sequential design software from those discussed above.
+Compute the group-sequential designs (and their operating characteristics) for OS and PFS in Running example 2, when their $\alpha$ assignment is $\alpha = 0.0225$.
+
+Can you also compute the fixed-sample designs for ORR and CR when $\alpha = 0.0025$?
+This task may be easily computed with `power.prop.test()`, though `rpact::getPowerRates()` will provide more thorough output.
+
+### Exercise 3: Plotting a graphical testing procedure
+
+There are several options available for plotting graphical testing procedures.
+These include functions in `{gMCPLite}` (see `gMCPLite::hGraph()`), and `{graphicalMCP}` (see `graphicalMCP::plot.initial_graph()`), and the site https://mrc-bsu.shinyapps.io/20MRC_BSU_GraphApp/.
+Note you can plot graphs with `{gMCP}`, but this will likely be more challenging unless you are able to use the package GUI.
+
+Using whichever approach you prefer, can you plot the initial graphs for Running examples 1 and 2?
+
+### Exercise 4: Calculating power of a graphical testing procedure
+
+Ignore the presence of interim analyses in Running example 1 (for OS and PFS, we will treat their fixed information level as that at IA1), and assume the test statistics for OS, PFS, and ORR, are uncorrelated.
+I.e., if $Z_\text{END}$ is the test statistic for endpoint $\text{END}$, assume
+
+\begin{align*}
+    \mathbb{E}(Z_\text{OS})    &= -\log(0.7)\sqrt{\frac{255}{4}},\\
+    \mathbb{E}(Z_\text{PFS})   &= -\log(0.69)\sqrt{\frac{357}{4}},\\
+    \mathbb{E}(Z_\text{ORR})   &= \frac{(0.59 - 0.39)}{\sqrt{\frac{4}{568}0.49(1 - 0.49)}},\\
+    \boldsymbol{Z}             &= (Z_\text{OS}, Z_\text{PFS}, Z_\text{ORR})^\top,\\
+    \text{Cov}(\boldsymbol{Z}) &= \begin{pmatrix}
+                                    1 & 0 & 0 \\
+                                    0 & 1 & 0 \\
+                                    0 & 0 & 1
+                                  \end{pmatrix}.
+\end{align*}
+
+Can you use either `gMCP::calcPower()` or `graphicalMCP::graph_calculate_power()` to compute the multiplicity adjusted power for each endpoint?
+
+What would be the implications to the multiplicity adjusted powers if the initial $\alpha$ split was instead $w_\text{OS} = 0.019/2 = 0.0095$, $w_\text{PFS} = 0.006/2 = 0.003$, and $w_\text{ORR} = 0.0125$?
+
+### Exercise 5: Optimal group-sequential design
+
+Slides 33 and 34 discuss the optimal Wang-Tsiatis design for three equally spaced analyses when $\alpha = 0.025$ and $\beta = 0.2$.
+Using the file `optimal_wt.R`, compute the optimal design for $\alpha = 0.025$ and $\beta = 0.1$, when there are four equally spaced analyses.
+How does the optimal design fare compare to Pocock's and O'Brien-Fleming approaches?

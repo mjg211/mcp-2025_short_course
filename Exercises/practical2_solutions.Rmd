@@ -1,0 +1,42 @@
+---
+title: "Practical 2 Solutions: Graphical testing in group-sequential designs using R"
+author: "Michael Grayling (mgraylin@its.jnj.com) and Yevgen Tymofyeyev (ytymofye@its.jnj.com)"
+date: "12th Aug 2025"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<span style="color: blue;"> This is the solutions file for Practical 2. Solutions are shown in blue. </span>
+
+## Introduction
+
+In this practical, the goal is to gain some practical experience with the functionality in `{appendMCP}`.
+As such, you will preferably have this package installed.
+If you have been unable to install this package, you can download the core components from https://github.com/mjg211/mcp-2025_short_course, and should still be able to proceed with the practical (assuming you are able to install other required packages, e.g., `gsDesign` and `tidyverse`).
+If you are unable to implement the package functionality via this work around, you could consider jumping straight to the practical2_solutions.html file, to see how to solve Exercises 1-2.
+Alternatively, consider working further on exercises from Practical 1, or asking any questions you may have about the course content.
+
+### Exercise 1: Re-designing Running example 2
+
+  a. Open the file keynote-598.Rmd. This contains the implementation of `{appendMCP}` for constructing the interim analysis and multiple testing procedure for KEYNOTE-598, presented in the course slide deck. Browse through the input section (lines 55 to 205). Check you understand what the inputs are doing; please ask if anything is unclear.
+  
+  <span style="color: blue;"> keynote-598_commented.Rmd provides a version of the .Rmd file that contains aditional comments, to hopefully remove any confusion. </span>
+  
+  b. The objective now is to convert the file keynote-598.Rmd to produce outputs relevant to Running example 2. Refer to Slides 6-13 in the deck to see how the assumptions for Running example 1: KEYNOTE-598 are placed in the .Rmd file, and what they need to be replaced with for Running example 2. Working line by line, map over the inputs as needed. If you are stuck, you can ask for clarification, or jump to the solution in running_example_2.Rmd if you prefer.
+
+<span style="color: blue;"> See running_example_2.Rmd and running_examples_2.html for the solution and associated output. Please ask if anything is unclear. </span>
+
+### Exercise 2: Further and improved implementations
+
+Ask us about how to implement other features `{appendMCP}` supports  (e.g., 'nominal' $\alpha$-spending at early IAs) or that you'd like it to support. Several such features are shown in practical2_solutions.html.
+
+<span style="color: blue;"> 'Nominal' $\alpha$-spending can be handled when specifying the spending function for each endpoint. E.g., if you replace line 98, `H1 = list(sfu = gsDesign::sfLDOF)`, in keynote-598.Rmd by `H1 = list(sfu = gsDesign::sfLDOF, nominal = 0.001)` this will set that Lan-DeMets O'Brien-Fleming spending function should determine the spend at IA2/FA, but that a small spend of 0.001 should be used at IA1.
+
+In addition, you can switch a binary endpoint to use an unpooled test by changing its class from `"binomial_pooled"` to `"binomial_unpooled"`. </span>
+
+Have you got any suggestions for how to improve the package input/output?
+
+<span style="color: blue;"> Please let us know, either in person or via email :) </span>
