@@ -29,4 +29,5 @@ install.packages("rpact")
 
 # The 'GTP-GSD Template' package discussed in the Short Course. This will make
 # sure all other required packages for Practical 2 are installed
-devtools::install_github("ytymofyeyev/appendMCP/")
+install.packages("devtools")
+devtools::install_github("ytymofyeyev/appendMCP")
